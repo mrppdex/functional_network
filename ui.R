@@ -1,94 +1,113 @@
 library(shiny)
 library(visNetwork)
+library(bslib)
 
-# Define UI
-ui <- fluidPage(
+# Define UI with bslib
+ui <- page_sidebar(
+    title = "Expertise Network",
+    theme = bs_theme(
+        version = 5,
+        bootswatch = "zephyr", # Clean, minimalist theme
+        primary = "#007bff",
+        "navbar-bg" = "#ffffff"
+    ),
+    sidebar = sidebar(
+        title = "Controls",
+        width = 300,
 
-    # Application title
-    titlePanel("Expertise Network Analysis"),
-    sidebarLayout(
-        sidebarPanel(
-            h4("Search & Filter"),
-            helpText("Find the best person for a task based on expertise and network connectivity."),
+        # Search & Filter Section
+        h5("Search & Filter"),
+        selectInput("focus_person",
+            "Focus Person (You):",
+            choices = NULL
+        ), # Populated server-side
 
-            # Select input for Expertise
-            selectInput("selected_expertise",
-                "Select Required Expertise (Multi-select):",
-                choices = NULL, # Populated server-side
-                multiple = TRUE,
-                selected = NULL
+        selectInput("selected_expertise",
+            "Required Expertise:",
+            choices = NULL, # Populated server-side
+            multiple = TRUE
+        ),
+        hr(),
+
+        # Actions
+        actionButton("save_data", "Save Network", class = "btn-primary w-100 mb-2"),
+        actionButton("reload_data", "Reload/Reset Data", class = "btn-outline-secondary w-100")
+    ),
+
+    # Main Content Area
+    navset_card_underline(
+        title = "Analysis",
+
+        # Tab 1: Network Visualization
+        nav_panel(
+            "Network Diagram",
+            card_body(
+                min_height = "600px",
+                visNetworkOutput("network_plot", height = "600px")
             ),
-
-            # Select input for Focus Person (Ego Network)
-            selectInput("focus_person",
-                "Focus Person (Optional - You):",
-                choices = c("None", "Alice", "Bob"), # Populated server-side
-                selected = "None"
-            ),
-            hr(),
-            h4("Actions"),
-            actionButton("reset_view", "Reset View", icon = icon("refresh")),
-            br(), br(),
-            actionButton("save_data", "Save Network Data", icon = icon("save"), class = "btn-primary"),
-            actionButton("reload_data", "Reload/Reset Data", icon = icon("undo"), class = "btn-danger"),
-            hr(),
-            h4("Legend"),
-            tags$ul(
-                tags$li(span(style = "color: blue; font-weight: bold;", "Blue Nodes"), ": People"),
-                tags$li(span(style = "color: orange; font-weight: bold;", "Orange Nodes"), ": Expertise")
+            card_footer(
+                "Tip: Scroll to zoom. Click and drag to pan. Click nodes to select."
             )
         ),
-        mainPanel(
-            tabsetPanel(
-                tabPanel(
-                    "Network Diagram",
-                    visNetworkOutput("network_plot", height = "600px")
-                ),
-                tabPanel(
-                    "Analysis & Recommendations",
-                    h4("Best Points of Contact"),
-                    p("People with the selected expertise, ranked by their network centrality (influence)."),
-                    dataTableOutput("experts_table"),
-                    hr(),
-                    h4("Path to Expert"),
-                    textOutput("path_output")
-                ),
-                tabPanel(
-                    "Management",
-                    h3("Manage Network"),
-                    p("Add or remove people and expertise, and create connections."),
-                    fluidRow(
-                        column(
-                            4,
-                            wellPanel(
-                                h4("Add Node"),
-                                textInput("new_node_name", "Name/Label"),
-                                selectInput("new_node_type", "Type", choices = c("Person", "Expertise")),
-                                actionButton("add_node_btn", "Add Node", class = "btn-success")
-                            )
-                        ),
-                        column(
-                            4,
-                            wellPanel(
-                                h4("Add Connection"),
-                                selectInput("edge_from", "From", choices = NULL),
-                                selectInput("edge_to", "To", choices = NULL),
-                                selectInput("edge_type", "Relationship",
-                                    choices = c("knows" = "knows", "has skill" = "has_skill")
-                                ),
-                                textInput("edge_details", "Details/Proficiency (Optional)"),
-                                actionButton("add_edge_btn", "Add Connection", class = "btn-success")
-                            )
-                        ),
-                        column(
-                            4,
-                            wellPanel(
-                                h4("Remove Node"),
-                                selectInput("remove_node_select", "Select Node", choices = NULL),
-                                actionButton("remove_node_btn", "Remove Node", class = "btn-danger")
-                            )
-                        )
+
+        # Tab 2: Experts Table
+        nav_panel(
+            "Experts List",
+            card_body(
+                h4("Recommended Experts"),
+                dataTableOutput("experts_table")
+            )
+        ),
+
+        # Tab 3: Path Finding
+        nav_panel(
+            "Connection Path",
+            card_body(
+                h4("Shortest Path to Expert"),
+                verbatimTextOutput("path_output"),
+                helpText("Shows the most efficient referral chain from your Focus Person to an expert.")
+            )
+        ),
+
+        # Tab 4: Management
+        nav_panel(
+            "Edit Network",
+            layout_columns(
+                col_widths = c(6, 6),
+
+                # Column 1: Add Node
+                card(
+                    card_header("Add Node"),
+                    card_body(
+                        textInput("new_node_name", "Name/Skill"),
+                        selectInput("new_node_type", "Type", choices = c("Person", "Expertise")),
+                        actionButton("add_node_btn", "Add Node", class = "btn-success")
                     )
+                ),
+
+                # Column 2: Remove Node
+                card(
+                    card_header("Remove Node"),
+                    card_body(
+                        selectInput("remove_node_select", "Select Node", choices = NULL),
+                        actionButton("remove_node_btn", "Remove Node", class = "btn-danger")
+                    )
+                )
+            ),
+            card(
+                card_header("Add Connection"),
+                card_body(
+                    layout_columns(
+                        col_widths = c(4, 4, 4),
+                        selectInput("edge_from", "From", choices = NULL),
+                        selectInput("edge_to", "To", choices = NULL),
+                        selectInput("edge_type", "Relationship",
+                            choices = c("knows" = "knows", "has_skill" = "has_skill")
+                        )
+                    ),
+                    textInput("edge_details", "Details/Proficiency (Optional)"),
+                    actionButton("add_edge_btn", "Add Connection", class = "btn-success w-100"),
+                    helpText("Direction will be auto-corrected (Person -> Expertise).")
                 )
             )
         )

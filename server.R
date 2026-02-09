@@ -240,23 +240,31 @@ server <- function(input, output, session) {
         nodes_viz <- rv$nodes
         edges_viz <- rv$edges
 
-        # Default styling
-        nodes_viz$color.background <- ifelse(nodes_viz$group == "Person", "#97C2FC", "#FFD700") # Blue / Gold
-        nodes_viz$shape <- ifelse(nodes_viz$group == "Person", "dot", "diamond")
+        # Default styling - Minimalist
+        nodes_viz$color.background <- ifelse(nodes_viz$group == "Person", "#E0F7FA", "#FFF9C4") # Very light Cyan / Light Yellow
+        nodes_viz$color.border <- ifelse(nodes_viz$group == "Person", "#006064", "#F57F17") # Dark Cyan / Dark Orange
+        nodes_viz$borderWidth <- 1
+
+        # Use simpler shapes
+        nodes_viz$shape <- "dot"
+
+        # Font styling
+        nodes_viz$font.face <- "Inter, sans-serif"
+        nodes_viz$font.size <- 14
+        nodes_viz$font.color <- "#333333"
 
         # Highlighting Logic
-        target_exp <- input$selected_expertise # Can be a vector now
+        target_exp <- input$selected_expertise
         focus_p <- input$focus_person
 
         if (!is.null(target_exp) && length(target_exp) > 0) {
-            # 1. Identify Experts (match ANY of the selected skills)
+            # 1. Identify Experts
             experts_edges <- edges_viz %>%
                 filter(to %in% target_exp, type == "has_skill")
 
             expert_ids <- unique(experts_edges$from)
 
-            # Find people with ALL selected skills (Super Experts)
-            # Count how many of the selected skills each person has
+            # Count matches
             expert_counts <- experts_edges %>%
                 count(from)
 
@@ -264,21 +272,25 @@ server <- function(input, output, session) {
                 filter(n == length(target_exp)) %>%
                 pull(from)
 
-            # Color experts green
-            nodes_viz$color.background[nodes_viz$id %in% expert_ids] <- "#7BE141" # Green
+            # Color experts - Soft Green
+            nodes_viz$color.background[nodes_viz$id %in% expert_ids] <- "#C8E6C9"
+            nodes_viz$color.border[nodes_viz$id %in% expert_ids] <- "#2E7D32"
 
-            # Color Super Experts (match ALL) darker green
+            # Color Super Experts - Slightly darker Green
             if (length(target_exp) > 1) {
-                nodes_viz$color.background[nodes_viz$id %in% super_experts] <- "#228B22" # ForestGreen
+                nodes_viz$color.background[nodes_viz$id %in% super_experts] <- "#A5D6A7"
             }
 
-            nodes_viz$color.background[nodes_viz$id %in% target_exp] <- "#FF4500" # OrangeRed
+            # Target Skill - Soft Red/Orange
+            nodes_viz$color.background[nodes_viz$id %in% target_exp] <- "#FFCCBC"
+            nodes_viz$color.border[nodes_viz$id %in% target_exp] <- "#D84315"
         }
 
         if (focus_p != "None") {
-            # Highlight Focus Person
-            nodes_viz$color.background[nodes_viz$id == focus_p] <- "#FB7E81" # Red-ish
-            nodes_viz$size[nodes_viz$id == focus_p] <- 30 # Make bigger
+            # Highlight Focus Person - Soft Red
+            nodes_viz$color.background[nodes_viz$id == focus_p] <- "#FFCDD2"
+            nodes_viz$color.border[nodes_viz$id == focus_p] <- "#C62828"
+            nodes_viz$size[nodes_viz$id == focus_p] <- 30
         }
 
         visNetwork(nodes_viz, edges_viz) %>%
@@ -286,8 +298,17 @@ server <- function(input, output, session) {
                 highlightNearest = list(enabled = TRUE, degree = 1, hover = TRUE),
                 nodesIdSelection = TRUE
             ) %>%
+            visEdges(
+                smooth = list(enabled = TRUE, type = "continuous"),
+                color = list(color = "#BDBDBD", highlight = "#5C5C5C"), # Light gray default
+                width = 1
+            ) %>%
+            visNodes(
+                shadow = FALSE, # Clean look
+                color = list(highlight = list(border = "#333333", background = "#FFFFFF"))
+            ) %>%
             visPhysics(stabilization = FALSE) %>%
-            visInteraction(navigationButtons = TRUE) %>%
+            visInteraction(navigationButtons = FALSE) %>% # Cleaner UI
             visLayout(randomSeed = 123)
     })
 
