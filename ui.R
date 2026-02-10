@@ -17,10 +17,7 @@ ui <- page_sidebar(
 
         # Search & Filter Section
         h5("Search & Filter"),
-        selectInput("focus_person",
-            "Focus Person (You):",
-            choices = NULL
-        ), # Populated server-side
+        # Focus Person removed as requested
 
         selectInput("selected_expertise",
             "Required Expertise:",
@@ -55,19 +52,17 @@ ui <- page_sidebar(
             "Experts List",
             card_body(
                 h4("Recommended Experts"),
+                p(class = "text-muted", "Metrics Explanation:"),
+                tags$ul(
+                    tags$li(tags$strong("Degree:"), " The number of direct connections a person has. Higher degree means they are more connected."),
+                    tags$li(tags$strong("Betweenness:"), " A measure of influence. People with high betweenness act as 'bridges' between different parts of the network.")
+                ),
                 dataTableOutput("experts_table")
             )
         ),
 
         # Tab 3: Path Finding
-        nav_panel(
-            "Connection Path",
-            card_body(
-                h4("Shortest Path to Expert"),
-                verbatimTextOutput("path_output"),
-                helpText("Shows the most efficient referral chain from your Focus Person to an expert.")
-            )
-        ),
+        # Connection Path tab removed as requested
 
         # Tab 4: Management
         nav_panel(
@@ -105,6 +100,7 @@ ui <- page_sidebar(
                             choices = c("knows" = "knows", "has_skill" = "has_skill")
                         )
                     ),
+                    sliderInput("edge_weight", "Strength/Weight", min = 0, max = 1, value = 0.5, step = 0.1),
                     textInput("edge_details", "Details/Proficiency (Optional)"),
                     actionButton("add_edge_btn", "Add Connection", class = "btn-success w-100"),
                     helpText("Direction will be auto-corrected (Person -> Expertise).")

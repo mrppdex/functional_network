@@ -14,9 +14,7 @@ server <- function(input, output, session) {
     # Helper to update all inputs after data change
     update_all_inputs <- function() {
         req(rv$nodes)
-        people_choices <- rv$nodes %>%
-            filter(group == "Person") %>%
-            pull(id)
+        # people_choices removed
         expertise_choices <- rv$nodes %>%
             filter(group == "Expertise") %>%
             pull(id)
@@ -24,7 +22,7 @@ server <- function(input, output, session) {
 
         # Preserve selections if possible, or reset
         updateSelectInput(session, "selected_expertise", choices = expertise_choices, selected = input$selected_expertise)
-        updateSelectInput(session, "focus_person", choices = c("None", people_choices), selected = input$focus_person)
+        # focus_person removed
 
         updateSelectInput(session, "remove_node_select", choices = all_nodes)
         updateSelectInput(session, "edge_from", choices = all_nodes)
@@ -70,15 +68,13 @@ server <- function(input, output, session) {
         rv$edges <- new_data$edges
 
         # Update inputs again
-        people_choices <- rv$nodes %>%
-            filter(group == "Person") %>%
-            pull(id)
+        # people_choices removed
         expertise_choices <- rv$nodes %>%
             filter(group == "Expertise") %>%
             pull(id)
 
         updateSelectInput(session, "selected_expertise", choices = expertise_choices)
-        updateSelectInput(session, "focus_person", choices = c("None", people_choices), selected = "None")
+        # focus_person removed
 
         # Update Management Inputs
         all_nodes <- rv$nodes$id
@@ -193,6 +189,7 @@ server <- function(input, output, session) {
 
                 # Add Edge with optional details
                 details <- input$edge_details
+                weight_val <- input$edge_weight
                 # Use NA_character_ to ensure correct column type
                 title_attr <- if (!is.null(details) && details != "") details else NA_character_
 
@@ -201,7 +198,8 @@ server <- function(input, output, session) {
                     to = final_to,
                     type = final_type,
                     title = title_attr,
-                    color = ifelse(final_type == "knows", "lightblue", "gray")
+                    color = ifelse(final_type == "knows", "lightblue", "gray"),
+                    weight = weight_val
                 )
 
                 # Debug: check types
@@ -241,12 +239,13 @@ server <- function(input, output, session) {
         edges_viz <- rv$edges
 
         # Default styling - Minimalist
+        # Default styling - Minimalist
         nodes_viz$color.background <- ifelse(nodes_viz$group == "Person", "#E0F7FA", "#FFF9C4") # Very light Cyan / Light Yellow
         nodes_viz$color.border <- ifelse(nodes_viz$group == "Person", "#006064", "#F57F17") # Dark Cyan / Dark Orange
         nodes_viz$borderWidth <- 1
 
-        # Use simpler shapes
-        nodes_viz$shape <- "dot"
+        # Use simpler shapes (Person=dot, Expertise=box)
+        nodes_viz$shape <- ifelse(nodes_viz$group == "Expertise", "box", "dot")
 
         # Font styling
         nodes_viz$font.face <- "Inter, sans-serif"
@@ -255,7 +254,7 @@ server <- function(input, output, session) {
 
         # Highlighting Logic
         target_exp <- input$selected_expertise
-        focus_p <- input$focus_person
+        # focus_p removed
 
         if (!is.null(target_exp) && length(target_exp) > 0) {
             # 1. Identify Experts
@@ -286,12 +285,7 @@ server <- function(input, output, session) {
             nodes_viz$color.border[nodes_viz$id %in% target_exp] <- "#D84315"
         }
 
-        if (focus_p != "None") {
-            # Highlight Focus Person - Soft Red
-            nodes_viz$color.background[nodes_viz$id == focus_p] <- "#FFCDD2"
-            nodes_viz$color.border[nodes_viz$id == focus_p] <- "#C62828"
-            nodes_viz$size[nodes_viz$id == focus_p] <- 30
-        }
+        # Focus person logic and highlighting removed
 
         visNetwork(nodes_viz, edges_viz) %>%
             visOptions(
@@ -301,7 +295,7 @@ server <- function(input, output, session) {
             visEdges(
                 smooth = list(enabled = TRUE, type = "continuous"),
                 color = list(color = "#BDBDBD", highlight = "#5C5C5C"), # Light gray default
-                width = 1
+                width = edges_viz$weight * 4 + 1 # Scale weight to width (1-5px)
             ) %>%
             visNodes(
                 shadow = FALSE, # Clean look
@@ -346,60 +340,7 @@ server <- function(input, output, session) {
     })
 
     # --- Path Finding ---
-    output$path_output <- renderText({
-        req(rv$nodes, rv$edges, input$selected_expertise, input$focus_person)
+    # --- Path Finding Removed ---
 
-        if (input$focus_person == "None") {
-            return("Select a Focus Person to see the path.")
-        }
-
-        target_exp <- input$selected_expertise
-        if (is.null(target_exp) || length(target_exp) == 0) {
-            return("Select expertise.")
-        }
-
-        # Find all experts (anyone with AT LEAST ONE of the skills)
-        experts_edges <- rv$edges %>%
-            filter(to %in% target_exp, type == "has_skill")
-        expert_ids <- unique(experts_edges$from)
-
-        if (input$focus_person %in% expert_ids) {
-            return("You are already an expert in this field!")
-        }
-
-        if (length(expert_ids) == 0) {
-            return("No experts found for these skills.")
-        }
-
-        # Find shortest path to *any* expert
-        shortest_path <- NULL
-        best_target <- NULL
-        min_dist <- Inf
-
-        # Prioritize "Super Experts" (those with more matching skills) could be an enhancement
-        # For now, stick to shortest path to *any* relevant expert
-
-        for (expert in expert_ids) {
-            # Refine pathfinding: Use only "knows" edges (people connections)
-            # Otherwise people are connected via shared skills
-            people_edges <- rv$edges %>% filter(type == "knows")
-            path <- find_connection_path(rv$nodes, people_edges, input$focus_person, expert)
-
-            if (!is.null(path)) {
-                # Path length (distance)
-                dist <- length(path) - 1 # edges
-                if (dist < min_dist) {
-                    min_dist <- dist
-                    shortest_path <- path
-                    best_target <- expert
-                }
-            }
-        }
-
-        if (!is.null(shortest_path)) {
-            paste("Best path to expert", best_target, ":", paste(shortest_path, collapse = " -> "))
-        } else {
-            "No connection found to any expert in this network."
-        }
-    })
+    # --- Path Finding Removed ---
 }
