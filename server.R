@@ -41,6 +41,13 @@ server <- function(input, output, session) {
             rv$nodes <- nodes_w_metrics
             rv$edges <- data$edges
 
+            # BACKWARD COMPATIBILITY: Ensure 'weight' column exists and has no NAs
+            if (!"weight" %in% names(rv$edges)) {
+                rv$edges$weight <- 0.5
+            }
+            # Handle potential NAs from partial updates or legacy data
+            rv$edges$weight[is.na(rv$edges$weight)] <- 0.5
+
             # Update UI inputs with available choices
             update_all_inputs()
         })
@@ -287,6 +294,11 @@ server <- function(input, output, session) {
 
         # Focus person logic and highlighting removed
 
+        # Calculate edge width based on weight
+        # Ensure weight is numeric
+        edges_viz$weight <- as.numeric(edges_viz$weight)
+        edges_viz$width <- edges_viz$weight * 4 + 1
+
         visNetwork(nodes_viz, edges_viz) %>%
             visOptions(
                 highlightNearest = list(enabled = TRUE, degree = 1, hover = TRUE),
@@ -294,8 +306,7 @@ server <- function(input, output, session) {
             ) %>%
             visEdges(
                 smooth = list(enabled = TRUE, type = "continuous"),
-                color = list(color = "#BDBDBD", highlight = "#5C5C5C"), # Light gray default
-                width = edges_viz$weight * 4 + 1 # Scale weight to width (1-5px)
+                color = list(color = "#BDBDBD", highlight = "#5C5C5C") # Light gray default
             ) %>%
             visNodes(
                 shadow = FALSE, # Clean look
