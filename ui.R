@@ -24,6 +24,10 @@ ui <- page_sidebar(
             choices = NULL, # Populated server-side
             multiple = TRUE
         ),
+        sliderInput("network_spread", "Spread / Relax",
+            min = 1, max = 10, value = 3, step = 1,
+            post = "x"
+        ),
         hr(),
 
         # Actions

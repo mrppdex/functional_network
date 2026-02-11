@@ -437,6 +437,12 @@ server <- function(input, output, session) {
             nodes_viz$font.face <- "Inter, sans-serif"
             nodes_viz$font.size <- 14
             nodes_viz$font.color <- "#333333"
+            nodes_viz$font.vadjust <- 0
+
+            # Scaling: keep labels readable when zoomed out
+            nodes_viz$scaling.label.enabled <- TRUE
+            nodes_viz$scaling.label.min <- 12
+            nodes_viz$scaling.label.max <- 28
 
             # Highlighting
             target_exp <- input$selected_expertise
@@ -464,6 +470,12 @@ server <- function(input, output, session) {
             edges_viz$weight <- as.numeric(edges_viz$weight)
             edges_viz$width <- edges_viz$weight * 4 + 1
 
+            # Physics: Use spread slider to control repulsion
+            spread <- input$network_spread
+            if (is.null(spread)) spread <- 3
+            grav_const <- -20 * spread # -20 to -200
+            spring_len <- 50 + (spread * 30) # 80 to 350
+
             visNetwork(nodes_viz, edges_viz) %>%
                 visOptions(
                     highlightNearest = list(enabled = TRUE, degree = 1, hover = TRUE),
@@ -477,14 +489,35 @@ server <- function(input, output, session) {
                     shadow = FALSE,
                     color = list(highlight = list(border = "#333333", background = "#FFFFFF"))
                 ) %>%
-                visPhysics(stabilization = FALSE) %>%
-                visInteraction(navigationButtons = FALSE) %>%
+                visPhysics(
+                    solver = "forceAtlas2Based",
+                    forceAtlas2Based = list(
+                        gravitationalConstant = grav_const,
+                        centralGravity = 0.005,
+                        springLength = spring_len,
+                        springConstant = 0.02
+                    ),
+                    stabilization = list(iterations = 150)
+                ) %>%
+                visInteraction(
+                    navigationButtons = FALSE,
+                    hover = TRUE,
+                    tooltipDelay = 100
+                ) %>%
                 visLayout(randomSeed = 123) %>%
-                visEvents(click = "function(params) {
+                visEvents(
+                    hoverNode = "function(params) {
+                        this.body.data.nodes.update({id: params.node, font: {size: 28}});
+                    }",
+                    blurNode = "function(params) {
+                        this.body.data.nodes.update({id: params.node, font: {size: 14}});
+                    }",
+                    click = "function(params) {
                     if (params.nodes.length > 0) {
                         Shiny.setInputValue('network_plot_click', {nodes: params.nodes}, {priority: 'event'});
                     }
-                }")
+                }"
+                )
         } else {
             # ===== DRILL-DOWN VIEW =====
             expertise_id <- rv$current_view
@@ -531,8 +564,19 @@ server <- function(input, output, session) {
             nodes_viz$font.size <- 16
             nodes_viz$font.color <- "#333333"
 
+            # Scaling: keep labels readable
+            nodes_viz$scaling.label.enabled <- TRUE
+            nodes_viz$scaling.label.min <- 14
+            nodes_viz$scaling.label.max <- 30
+
             edges_viz$weight <- as.numeric(edges_viz$weight)
             edges_viz$width <- edges_viz$weight * 4 + 1
+
+            # Physics: Use spread slider for drill-down too
+            spread <- input$network_spread
+            if (is.null(spread)) spread <- 3
+            grav_const <- -20 * spread
+            spring_len <- 50 + (spread * 30)
 
             visNetwork(nodes_viz, edges_viz) %>%
                 visOptions(
@@ -550,14 +594,27 @@ server <- function(input, output, session) {
                 visPhysics(
                     solver = "forceAtlas2Based",
                     forceAtlas2Based = list(
-                        gravitationalConstant = -30,
-                        centralGravity = 0.01,
-                        springLength = 150
+                        gravitationalConstant = grav_const,
+                        centralGravity = 0.005,
+                        springLength = spring_len,
+                        springConstant = 0.02
                     ),
-                    stabilization = list(iterations = 100)
+                    stabilization = list(iterations = 150)
                 ) %>%
-                visInteraction(navigationButtons = FALSE) %>%
-                visLayout(randomSeed = 42)
+                visInteraction(
+                    navigationButtons = FALSE,
+                    hover = TRUE,
+                    tooltipDelay = 100
+                ) %>%
+                visLayout(randomSeed = 42) %>%
+                visEvents(
+                    hoverNode = "function(params) {
+                        this.body.data.nodes.update({id: params.node, font: {size: 30}});
+                    }",
+                    blurNode = "function(params) {
+                        this.body.data.nodes.update({id: params.node, font: {size: 16}});
+                    }"
+                )
         }
     })
 
