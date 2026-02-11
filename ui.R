@@ -32,7 +32,8 @@ ui <- page_sidebar(
 
         # Actions
         actionButton("save_data", "Save Network", class = "btn-primary w-100 mb-2"),
-        actionButton("reload_data", "Reload/Reset Data", class = "btn-outline-secondary w-100")
+        actionButton("reload_data", "Reload Saved", class = "btn-outline-primary w-100 mb-2"),
+        actionButton("reset_data", "Reset to Mock Data", class = "btn-outline-secondary w-100")
     ),
 
     # Main Content Area

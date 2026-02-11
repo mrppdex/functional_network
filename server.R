@@ -52,8 +52,25 @@ server <- function(input, output, session) {
         showNotification("Network data saved successfully!", type = "message")
     })
 
-    # --- Persistence: Reload/Reset Data ---
+    # --- Persistence: Reload from saved file ---
     observeEvent(input$reload_data, {
+        data <- load_network_data()
+
+        # Ensure backward compat
+        if (!"parent" %in% names(data$nodes)) data$nodes$parent <- NA_character_
+        if (!"weight" %in% names(data$edges)) data$edges$weight <- 0.5
+        data$edges$weight[is.na(data$edges$weight)] <- 0.5
+
+        rv$nodes <- calculate_metrics(data$nodes, data$edges)
+        rv$edges <- data$edges
+        rv$current_view <- "root"
+
+        update_all_inputs()
+        showNotification("Network reloaded from saved file!", type = "message")
+    })
+
+    # --- Persistence: Reset to fresh mock data ---
+    observeEvent(input$reset_data, {
         new_data <- generate_mock_data()
         save_network_data(new_data$nodes, new_data$edges)
 
@@ -62,7 +79,7 @@ server <- function(input, output, session) {
         rv$current_view <- "root"
 
         update_all_inputs()
-        showNotification("Network data reset/reloaded!", type = "warning")
+        showNotification("Network reset to fresh mock data!", type = "warning")
     })
 
     # =========================================================================
