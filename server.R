@@ -653,6 +653,7 @@ server <- function(input, output, session) {
             group_by(from) %>%
             summarise(
                 MatchingSkills = n(),
+                AvgWeight = round(mean(weight, na.rm = TRUE), 2),
                 Skills = paste(to, collapse = ", ")
             )
 
@@ -662,7 +663,8 @@ server <- function(input, output, session) {
             filter(id %in% expert_ids) %>%
             select(Name = id, Degree = degree, Betweenness = betweenness) %>%
             left_join(match_counts, by = c("Name" = "from")) %>%
-            arrange(desc(MatchingSkills), desc(Degree))
+            arrange(desc(MatchingSkills), desc(AvgWeight), desc(Degree), desc(Betweenness)) %>%
+            select(Name, MatchingSkills, AvgWeight, Skills, Degree, Betweenness)
 
         experts_df
     })
