@@ -21,7 +21,8 @@ generate_mock_data <- function() {
         label = people_names,
         group = "Person",
         title = paste("Person:", people_names),
-        value = 1 # Initial size
+        value = 1, # Initial size
+        parent = NA_character_ # Top-level node
     )
 
     # 2. Define Expertise
@@ -35,7 +36,8 @@ generate_mock_data <- function() {
         label = expertise_areas,
         group = "Expertise",
         title = paste("Skill:", expertise_areas),
-        value = 3 # Make expertise nodes slightly larger by default
+        value = 3, # Make expertise nodes slightly larger by default
+        parent = NA_character_ # Top-level node
     )
 
     nodes <- bind_rows(nodes_people, nodes_expertise)
@@ -92,7 +94,17 @@ save_network_data <- function(nodes, edges) {
 
 load_network_data <- function() {
     if (file.exists(DATA_FILE)) {
-        return(readRDS(DATA_FILE))
+        data <- readRDS(DATA_FILE)
+        # BACKWARD COMPATIBILITY: Ensure 'parent' column exists
+        if (!"parent" %in% names(data$nodes)) {
+            data$nodes$parent <- NA_character_
+        }
+        # BACKWARD COMPATIBILITY: Ensure 'weight' column exists
+        if (!"weight" %in% names(data$edges)) {
+            data$edges$weight <- 0.5
+        }
+        data$edges$weight[is.na(data$edges$weight)] <- 0.5
+        return(data)
     } else {
         data <- generate_mock_data()
         save_network_data(data$nodes, data$edges)
